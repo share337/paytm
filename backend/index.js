@@ -11,7 +11,6 @@ await mongoose.connect(
   "mongodb+srv://user1:geBDFeUUkVQoTs4M@cluster0.c60lphp.mongodb.net/paytm"
 )
 console.log("database connected")
-import { userRouter } from "./routes/user.js"
 
 const app = express()
 app.use(cors())

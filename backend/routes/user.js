@@ -11,7 +11,7 @@ const userRouter = express.Router()
 
 userRouter.post("/signup", async (req, res) => {
   const requireBody = z.object({
-    userName: z.string().min(3).max(100),
+    userName: z.string().min(3).max(100).email(),
     firstName: z.string().min(3).max(100),
     lastName: z.string().min(3).max(100),
     password: z.string().min(3).max(100),
@@ -30,6 +30,16 @@ userRouter.post("/signup", async (req, res) => {
   const lastName = req.body.lastName
   const password = req.body.password
   let throwError = false
+
+  const existingUser = await UserModel.findOne({
+    userName
+
+  })
+  if (existingUser) {
+    return res.status(411).json({
+      msg: "Email already taken, user already exists"
+    })
+  }
   try {
 
     const hashedPassword = await bcrypt.hash(password, 5)
@@ -84,11 +94,12 @@ userRouter.post("/signin", async (req, res) => {
     }
 
 
-    const passwordMatch = bcrypt.compare(
+    const passwordMatch = await bcrypt.compare(
       password,
       response.password
     )
 
+    console.log(passwordMatch)
 
     if (!passwordMatch) {
       return res.status(401).json({
@@ -107,7 +118,7 @@ userRouter.post("/signin", async (req, res) => {
 
     return res.status(200).json({
       msg: "Signed in successfully",
-      token
+      token: token
     })
 
 
@@ -124,8 +135,60 @@ userRouter.post("/signin", async (req, res) => {
 userRouter.post("/todo", auth, (req, res) => {
   const userId = req.id
   res.status(200).json({
-    "msg": "You are genius"
+    "msg": "You are genius",
+    "userId": userId
   })
+
+})
+userRouter.post("/update", auth, async (req, res) => {
+  const userId = req.id
+  const reqBody = z.object({
+    userName: z.string().min(3).max(100).email(),
+    firstName: z.string().min(3).max(100),
+    lastName: z.string().min(3).max(100),
+    password: z.string().min(3).max(100),
+  })
+  const parsedSuccess = reqBody.safeParse(req.body)
+  if (!parsedSuccess.success) {
+    return res.status(411).json({
+      msf: "Invalid format"
+    })
+
+  }
+  const userName = req.body?.userName
+  const firstName = req.body?.firstName
+  const lastName = req.body?.lastName
+  const password = req.body?.password
+  const hashedPassword = await bcrypt.hash(password, 5)
+  const user = await UserModel.findOne({
+    _id: userId
+
+
+  })
+  if (user) {
+    await UserModel.updateOne({
+      _id: userId
+    },
+      {
+        $set: {
+
+          userName: userName,
+          firstName: firstName,
+          lastName: lastName,
+          password: hashedPassword
+        }
+
+      })
+    return res.status(200).json({
+      msg: "data modified successfully"
+    })
+  }
+  else {
+    return res.status(411).json({
+      msg: "invalid format to update "
+    })
+  }
+
 
 })
 export { userRouter }

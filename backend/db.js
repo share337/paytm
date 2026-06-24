@@ -10,6 +10,7 @@ const User = new Schema({
 })
 
 
+
 const UserModel = mongoose.model('user', User)
 
 export { UserModel }
