@@ -1,20 +1,20 @@
 import express from "express"
 import mongoose from "mongoose"
-import { UserModel } from "./db.js"
+import { TodoModel, UserModel } from "./db.js"
+import "dotenv/config"
 import jwt from "jsonwebtoken"
-const JWT_SECRET = "S3CRET";
+import { auth } from "./auth.js"
 await mongoose.connect(
   "mongodb+srv://user1:geBDFeUUkVQoTs4M@cluster0.c60lphp.mongodb.net/hackers"
 )
 console.log("database connected")
 
-const PORT = 3000
 const app = express()
 app.use(express.json())
 app.get("/", (req, res) => {
   res.status(200).json({ "msg": "Welcome to the hackers group" })
 })
-app.get("/signup", async (req, res) => {
+app.post("/signup", async (req, res) => {
   const name = req.body.name
   const email = req.body.email
   const password = req.body.password
@@ -29,30 +29,49 @@ app.get("/signup", async (req, res) => {
 
 })
 
-app.post("/signin", (req, res) => {
+app.post("/signin", async (req, res) => {
   const email = req.body.email;
   const password = req.body.password
-  const response = UserModel.findOne({
+  const response = await UserModel.findOne({
     email: email,
     password: password
   })
+  console.log(response)
   if (response) {
     const token = jwt.sign({
       id: response._id.toString()
-    })
-    res.json({
-      token
+    }, process.env.JWT_SECRET)
+    res.status(200).json({
+      "token": token
     })
   }
-
   else {
     res.status(403).json({
-      "msg": "Incorrect creds"
+      "msg": "Error in token generation"
     })
   }
 
 })
+app.post("/todo", auth, async (req, res) => {
+  const title = req.body.title
+  const userId = req.userId.toString()
+  const completed = req.body.completed
+  await TodoModel.create({
+    title: title, userId: userId, completed: completed
+  })
+  res.status(200).json({ userId: userId.toString() })
+})
+app.get("/todos", auth, async (req, res) => {
+  const userId = req.userId
+  const data = await TodoModel.findOne({
+    userId: userId
+  })
+  res.status(200).json({
+    "title": data.title,
+    "completed": data.completed
+  })
+})
 
-app.listen(PORT, () => {
-  console.log("Server is running at port: " + PORT)
+app.listen(process.env.PORT, () => {
+  console.log("Server is running at port: " + process.env.PORT)
 })
