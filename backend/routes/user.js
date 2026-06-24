@@ -5,6 +5,7 @@ import bcrypt, { hash } from "bcrypt"
 import jwt from "jsonwebtoken"
 import { JWT_SECRET } from "../config.js";
 
+import { auth } from "../auth.js"
 
 const userRouter = express.Router()
 
@@ -118,6 +119,13 @@ userRouter.post("/signin", async (req, res) => {
       msg: "Server error"
     })
   }
+
+})
+userRouter.post("/todo", auth, (req, res) => {
+  const userId = req.id
+  res.status(200).json({
+    "msg": "You are genius"
+  })
 
 })
 export { userRouter }
