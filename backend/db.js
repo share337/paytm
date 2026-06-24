@@ -3,18 +3,13 @@ const Schema = mongoose.Schema
 const ObjectId = Schema.ObjectId
 
 const User = new Schema({
-  name: String,
-  email: { type: String, unique: true },
+  userName: String,
   password: String,
-})
-const Todo = new Schema({
-  userId: ObjectId,
-  title: String,
-  completed: Boolean
+  firstName: String,
+  lastName: String
 })
 
 
 const UserModel = mongoose.model('user', User)
-const TodoModel = mongoose.model("todos", Todo)
 
-export { UserModel, TodoModel }
+export { UserModel }
