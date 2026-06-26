@@ -189,6 +189,30 @@ userRouter.post("/update", auth, async (req, res) => {
     })
   }
 
+})
+
+userRouter.get("/bulk", auth, async (req, res) => {
+  const filter = req.query.filter || "";
+  const users = await UserModel.find({
+    $or: [{
+      firstName: {
+        "$regex": filter
+      },
+      lastName: {
+        "$regex": filter
+      }
+    }]
+  })
+  res.json({
+    user: users.map((user) => ({
+      userName: user.userName,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      _id: user._id
+
+    }))
+  })
+
 
 })
 export { userRouter }
