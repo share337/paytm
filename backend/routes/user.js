@@ -1,5 +1,5 @@
 import express from "express";
-import { UserModel } from "../db.js";
+import { Account, UserModel } from "../db.js";
 import * as z from "zod"
 import bcrypt, { hash } from "bcrypt"
 import jwt from "jsonwebtoken"
@@ -43,11 +43,16 @@ userRouter.post("/signup", async (req, res) => {
   try {
 
     const hashedPassword = await bcrypt.hash(password, 5)
-    await UserModel.create({
+    const user = await UserModel.create({
       userName,
       firstName,
       lastName,
       password: hashedPassword
+    })
+    const userId = user._id
+    await Account.create({
+      userId,
+      balance: 1 + Math.random() * 1000
     })
   }
   catch (error) {
@@ -203,16 +208,27 @@ userRouter.get("/bulk", auth, async (req, res) => {
       }
     }]
   })
-  res.json({
-    user: users.map((user) => ({
-      userName: user.userName,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      _id: user._id
+})
 
-    }))
+userRouter.get("/balance", auth, async (req, res) => {
+  const userId = req.id
+  const data = await Account.findOne({
+    userId: userId,
   })
 
+  if (data) {
+    return res.status(200).json({
+      balance: data.balance
+    })
+  }
+
+
+  else {
+    return res.status(403).json({
+      msg: "User data not found"
+    })
+  }
 
 })
+
 export { userRouter }
