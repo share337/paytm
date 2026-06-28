@@ -7,6 +7,7 @@ import { JWT_SECRET } from "../config.js";
 
 import { auth } from "../auth.js"
 
+
 const userRouter = express.Router()
 
 userRouter.post("/signup", async (req, res) => {
@@ -52,7 +53,8 @@ userRouter.post("/signup", async (req, res) => {
     const userId = user._id
     await Account.create({
       userId,
-      balance: 1 + Math.random() * 1000
+      balance: (1 + Math.random() * 1000).toFixed(2)
+
     })
   }
   catch (error) {
@@ -210,25 +212,5 @@ userRouter.get("/bulk", auth, async (req, res) => {
   })
 })
 
-userRouter.get("/balance", auth, async (req, res) => {
-  const userId = req.id
-  const data = await Account.findOne({
-    userId: userId,
-  })
-
-  if (data) {
-    return res.status(200).json({
-      balance: data.balance
-    })
-  }
-
-
-  else {
-    return res.status(403).json({
-      msg: "User data not found"
-    })
-  }
-
-})
 
 export { userRouter }
