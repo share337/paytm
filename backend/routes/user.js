@@ -51,24 +51,30 @@ userRouter.post("/signup", async (req, res) => {
       password: hashedPassword
     })
     const userId = user._id
+    const id = userId
+
+    const token = jwt.sign({ id }, JWT_SECRET)
     await Account.create({
       userId,
       balance: (1 + Math.random() * 1000).toFixed(2)
 
+    })
+
+
+    res.status(200).json({
+      msg: "Your are signed up",
+      token: token
     })
   }
   catch (error) {
     console.log("User already exist")
     throwError = true
     res.status(411).json({
-      msg: "User already exists"
-    })
-  } if (!throwError) {
-
-    res.status(200).json({
-      "msg": "Your are signed up"
+      msg: "User already exists",
+      error: error
     })
   }
+
 
 })
 userRouter.post("/signin", async (req, res) => {
@@ -198,17 +204,28 @@ userRouter.post("/update", auth, async (req, res) => {
 
 })
 
-userRouter.get("/bulk", auth, async (req, res) => {
+userRouter.get("/bulk", async (req, res) => {
   const filter = req.query.filter || "";
+
   const users = await UserModel.find({
     $or: [{
       firstName: {
         "$regex": filter
-      },
+      }
+    }, {
       lastName: {
         "$regex": filter
       }
     }]
+  })
+
+  res.json({
+    user: users.map(user => ({
+      username: user.userName,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      _id: user._id
+    }))
   })
 })
 
