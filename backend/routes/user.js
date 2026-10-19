@@ -1,7 +1,7 @@
 import express from "express";
 import { Account, UserModel } from "../db.js";
 import * as z from "zod"
-import bcrypt, { hash } from "bcrypt"
+import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { JWT_SECRET } from "../config.js";
 
@@ -20,7 +20,7 @@ userRouter.post("/signup", async (req, res) => {
   })
   const parsedSuccess = requireBody.safeParse(req.body)
   if (!parsedSuccess.success) {
-    res.status(411).json({
+    return res.status(400).json({
       "msg": "Invalid format",
       "error:": parsedSuccess.error
 
@@ -30,8 +30,6 @@ userRouter.post("/signup", async (req, res) => {
   const firstName = req.body.firstName
   const lastName = req.body.lastName
   const password = req.body.password
-  let throwError = false
-
   const existingUser = await UserModel.findOne({
     userName
 
@@ -67,11 +65,9 @@ userRouter.post("/signup", async (req, res) => {
     })
   }
   catch (error) {
-    console.log("User already exist")
-    throwError = true
-    res.status(411).json({
+    console.error("Unable to create user", error)
+    return res.status(500).json({
       msg: "User already exists",
-      error: error
     })
   }
 
@@ -111,8 +107,6 @@ userRouter.post("/signin", async (req, res) => {
       password,
       response.password
     )
-
-    console.log(passwordMatch)
 
     if (!passwordMatch) {
       return res.status(401).json({
@@ -205,7 +199,7 @@ userRouter.post("/update", auth, async (req, res) => {
 })
 
 userRouter.get("/bulk", async (req, res) => {
-  const filter = req.query.filter || "";
+  const filter = String(req.query.filter || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   const users = await UserModel.find({
     $or: [{
@@ -217,7 +211,7 @@ userRouter.get("/bulk", async (req, res) => {
         "$regex": filter
       }
     }]
-  })
+  }).limit(20)
 
   res.json({
     user: users.map(user => ({

@@ -29,20 +29,38 @@ accountRouter.get("/balance", auth, async (req, res) => {
 })
 
 accountRouter.post("/transfer", auth, async (req, res) => {
-  try {
+  const transferBody = z.object({
+    to: z.string().refine(value => mongoose.isValidObjectId(value), {
+      message: "Invalid recipient"
+    }),
+    amount: z.coerce.number().finite().positive().max(1000000)
+  })
+  const parsedBody = transferBody.safeParse(req.body)
 
-    const session = await mongoose.startSession()
+  if (!parsedBody.success) {
+    return res.status(400).json({
+      msg: "Invalid transfer details",
+      error: parsedBody.error
+    })
+  }
+
+  const { amount, to } = parsedBody.data
+  if (to === req.id) {
+    return res.status(400).json({
+      msg: "You cannot transfer money to yourself"
+    })
+  }
+
+  const session = await mongoose.startSession()
+  try {
     session.startTransaction()
-    const { amount, to } = req.body
     const account = await Account.findOne({
       userId: req.id
     }).session(session)
     if (!account || account.balance < amount) {
       await session.abortTransaction()
       return res.status(403).json({
-        msg: "Insufficient balance ",
-        id: account.userId,
-        balance: account.balance
+        msg: "Insufficient balance"
       })
 
     }
@@ -80,11 +98,15 @@ accountRouter.post("/transfer", auth, async (req, res) => {
     })
   }
   catch (err) {
-    await session.abortTransaction()
+    if (session.inTransaction()) {
+      await session.abortTransaction()
+    }
+    console.error("Transfer failed", err)
     return res.status(411).json({
-      err: err
+      msg: "Transfer failed"
     })
-
+  } finally {
+    await session.endSession()
   }
 })
 
